@@ -1,75 +1,79 @@
 -- Запустить в Supabase: SQL Editor
 
 -- 1. Получить данные приглашения по токену (обходит RLS)
-create or replace function public.check_invite_by_token(p_token uuid)
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
+CREATE OR REPLACE FUNCTION public.check_invite_by_token(p_token text)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
   v_invite invites%rowtype;
   v_restaurant_name text;
-begin
-  select * into v_invite
-  from invites
-  where token = p_token
-    and used = false
-    and expires_at > now();
+BEGIN
+  SELECT * INTO v_invite
+  FROM invites
+  WHERE token = p_token
+    AND used = false
+    AND expires_at > now();
 
-  if not found then
-    return json_build_object('valid', false);
-  end if;
+  IF NOT FOUND THEN
+    RETURN json_build_object('valid', false);
+  END IF;
 
-  select name into v_restaurant_name
-  from restaurants
-  where id = v_invite.restaurant_id;
+  SELECT name INTO v_restaurant_name
+  FROM restaurants
+  WHERE id = v_invite.restaurant_id;
 
-  return json_build_object(
+  RETURN json_build_object(
     'valid',           true,
     'id',              v_invite.id,
     'role',            v_invite.role,
     'email',           v_invite.email,
     'restaurant_id',   v_invite.restaurant_id,
-    'restaurant_name', coalesce(v_restaurant_name, '')
+    'restaurant_name', COALESCE(v_restaurant_name, '')
   );
-end;
+END;
 $$;
 
 -- 2. Принять приглашение: создать профиль + отметить ссылку как использованную
-create or replace function public.accept_invite(
-  p_token    uuid,
-  p_user_id  uuid,
-  p_email    text,
+CREATE OR REPLACE FUNCTION public.accept_invite(
+  p_token     text,
+  p_user_id   uuid,
+  p_email     text,
   p_full_name text
 )
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
   v_invite invites%rowtype;
-begin
-  select * into v_invite
-  from invites
-  where token = p_token
-    and used = false
-    and expires_at > now();
+BEGIN
+  SELECT * INTO v_invite
+  FROM invites
+  WHERE token = p_token
+    AND used = false
+    AND expires_at > now();
 
-  if not found then
-    return json_build_object('error', 'Ссылка недействительна или устарела');
-  end if;
+  IF NOT FOUND THEN
+    RETURN json_build_object('error', 'Ссылка недействительна или устарела');
+  END IF;
 
-  insert into profiles (id, email, full_name, role, restaurant_id)
-  values (p_user_id, p_email, p_full_name, v_invite.role, v_invite.restaurant_id)
-  on conflict (id) do update set
-    full_name    = excluded.full_name,
-    role         = excluded.role,
+  INSERT INTO profiles (id, email, full_name, role, restaurant_id)
+  VALUES (p_user_id, p_email, p_full_name, v_invite.role, v_invite.restaurant_id)
+  ON CONFLICT (id) DO UPDATE SET
+    full_name     = excluded.full_name,
+    role          = excluded.role,
     restaurant_id = excluded.restaurant_id;
 
-  update invites set used = true where id = v_invite.id;
+  UPDATE invites SET used = true WHERE id = v_invite.id;
 
-  return json_build_object('success', true);
-end;
+  RETURN json_build_object('success', true);
+END;
 $$;
+
+-- 3. Выдать права на вызов анонимным и авторизованным пользователям
+GRANT EXECUTE ON FUNCTION public.check_invite_by_token(text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.accept_invite(text, uuid, text, text) TO anon, authenticated;
