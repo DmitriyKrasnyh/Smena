@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="110" fill="#1a1a1a"/>
+  <!-- C arc: center (256,256), radius 138, from top-right to bottom-right, counter-clockwise -->
+  <path d="M 354 158 A 138 138 0 1 0 354 354"
+    fill="none" stroke="#f0ece4" stroke-width="50" stroke-linecap="round"/>
+  <!-- Center pivot dot -->
+  <circle cx="256" cy="256" r="14" fill="#f0ece4"/>
+  <!-- Amber minute hand pointing to 12 (shift start indicator) -->
+  <line x1="256" y1="256" x2="256" y2="138" stroke="#f59e0b" stroke-width="18" stroke-linecap="round"/>
+</svg>
