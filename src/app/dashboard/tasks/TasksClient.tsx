@@ -436,30 +436,43 @@ export default function TasksClient({ tasks: initialTasks, workers, profile, tem
         ${isExpanded ? 'shadow-md' : 'shadow-sm hover:shadow-md hover:-translate-y-px'}`}
       >
         <div className="w-[3px] shrink-0 rounded-l-sm" style={{ backgroundColor: stripeColor }} />
-        <div className="flex-1 min-w-0">
-          <div className="p-4 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : task.id)}>
-            <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0 overflow-hidden">
+
+          {/* Main content row */}
+          <div className="p-3 sm:p-4 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : task.id)}>
+            <div className="flex items-start gap-2.5">
               <div className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${priorityCfg.dot}`} />
               <div className="flex-1 min-w-0">
+                {/* Title + status */}
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                    <p className={`font-medium text-sm leading-snug ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium text-sm leading-snug break-words ${task.status === 'done' ? 'line-through text-muted-foreground' : ''}`}>
                       {task.title}
                     </p>
-                    {overdueTask && (
-                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-red-100 text-red-600 border border-red-200 leading-none">
-                        Просрочено
-                      </span>
-                    )}
-                    {!overdueTask && task.priority === 'high' && task.status !== 'done' && (
-                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-red-50 text-red-500 border border-red-100 leading-none">
-                        Срочно
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                      {overdueTask && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-red-100 text-red-600 border border-red-200 leading-none">
+                          Просрочено
+                        </span>
+                      )}
+                      {!overdueTask && task.priority === 'high' && task.status !== 'done' && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-red-50 text-red-500 border border-red-100 leading-none">
+                          Срочно
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-lg border font-medium shrink-0 ${statusCfg.cls}`}>
-                    {statusCfg.label}
-                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className={`text-xs px-2 py-0.5 rounded-lg border font-medium whitespace-nowrap ${statusCfg.cls}`}>
+                      {statusCfg.label}
+                    </span>
+                    <button
+                      className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : task.id) }}
+                    >
+                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 {task.description && !isExpanded && (
@@ -474,67 +487,63 @@ export default function TasksClient({ tasks: initialTasks, workers, profile, tem
                   <img src={task.photo_url} alt="Фото выполнения" className="mt-2 h-16 w-24 object-cover rounded-lg border" />
                 )}
 
-                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                {/* Meta */}
+                <div className="flex items-center gap-2.5 mt-2 flex-wrap">
                   <span className="text-xs text-muted-foreground">{catIcon}</span>
                   {(task as any).assignee && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <User className="h-3 w-3" />
-                      {(task as any).assignee.full_name.split(' ')[0]}
+                      <User className="h-3 w-3 shrink-0" />
+                      <span className="truncate max-w-[80px]">{(task as any).assignee.full_name.split(' ')[0]}</span>
                     </span>
                   )}
                   {task.deadline && (
-                    <span className={`flex items-center gap-1 text-xs font-medium ${overdueTask ? 'text-red-500' : 'text-muted-foreground'}`}>
-                      <Calendar className="h-3 w-3" />
-                      {overdueTask ? 'до ' : 'до '}
-                      {new Date(task.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                    <span className={`flex items-center gap-1 text-xs font-medium whitespace-nowrap ${overdueTask ? 'text-red-500' : 'text-muted-foreground'}`}>
+                      <Calendar className="h-3 w-3 shrink-0" />
+                      до {new Date(task.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
                     </span>
                   )}
-                  <span className={`flex items-center gap-1 text-xs ${priorityCfg.color}`}>
-                    <Flag className="h-3 w-3" />
+                  <span className={`flex items-center gap-1 text-xs whitespace-nowrap ${priorityCfg.color}`}>
+                    <Flag className="h-3 w-3 shrink-0" />
                     {priorityCfg.label}
                   </span>
                 </div>
               </div>
-
-              <div className="flex items-center gap-0.5 shrink-0">
-                {statusCfg.next && (
-                  <Button
-                    size="sm"
-                    variant={isUrgent ? 'default' : task.status === 'new' ? 'outline' : 'default'}
-                    className="h-7 text-xs px-2.5"
-                    disabled={updatingId === task.id}
-                    onClick={e => { e.stopPropagation(); handleStatusChange(task) }}
-                  >
-                    {updatingId === task.id ? <Loader2 className="h-3 w-3 animate-spin" /> : statusCfg.nextLabel}
-                  </Button>
-                )}
-                {isManager && task.status !== 'done' && (
-                  <button
-                    className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={e => { e.stopPropagation(); openEditDialog(task) }}
-                    title="Редактировать"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                )}
-                {isManager && (
-                  <button
-                    className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
-                    onClick={e => { e.stopPropagation(); setDeleteDialog(task) }}
-                    title="Удалить"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-                <button
-                  className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : task.id) }}
-                >
-                  {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
-              </div>
             </div>
           </div>
+
+          {/* Action buttons — always below content */}
+          {(statusCfg.next || isManager) && !isExpanded && (
+            <div className="px-3 sm:px-4 pb-3 flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+              {statusCfg.next && (
+                <button
+                  disabled={updatingId === task.id}
+                  onClick={e => { e.stopPropagation(); handleStatusChange(task) }}
+                  className={`flex-1 sm:flex-none h-8 px-3 text-xs font-semibold rounded-[8px] transition-all flex items-center justify-center gap-1.5
+                    ${isUrgent ? 'bg-[#1a1a1a] text-white hover:bg-[#2d2d2d]' : task.status === 'new'
+                      ? 'bg-white text-foreground border border-[#e4ddd2] hover:bg-[#f5f3f0]'
+                      : 'bg-[#1a1a1a] text-white hover:bg-[#2d2d2d]'}`}
+                >
+                  {updatingId === task.id ? <Loader2 className="h-3 w-3 animate-spin" /> : statusCfg.nextLabel}
+                </button>
+              )}
+              {isManager && task.status !== 'done' && (
+                <button
+                  className="h-8 w-8 flex items-center justify-center rounded-[8px] bg-[#f5f3f0] border border-[#e4ddd2] text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  onClick={e => { e.stopPropagation(); openEditDialog(task) }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {isManager && (
+                <button
+                  className="h-8 w-8 flex items-center justify-center rounded-[8px] bg-[#f5f3f0] border border-[#e4ddd2] text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                  onClick={e => { e.stopPropagation(); setDeleteDialog(task) }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
 
           {isExpanded && (
             <div className="px-4 pb-4 border-t pt-4">

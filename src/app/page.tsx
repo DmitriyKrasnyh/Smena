@@ -107,28 +107,29 @@ export default async function Home() {
           <div className="flex items-center gap-2">
             <Link
               href="/login"
-              className="px-4 py-2 text-sm font-medium text-[#1a1a1a]/60 hover:text-[#1a1a1a] transition-colors"
+              className="px-3 sm:px-4 py-2 text-sm font-medium text-[#1a1a1a]/60 hover:text-[#1a1a1a] transition-colors"
             >
               Войти
             </Link>
             <Link
               href="/register"
-              className="px-4 py-2 bg-[#1a1a1a] text-[#f0ece4] rounded-[10px] text-sm font-semibold hover:bg-[#2d2d2d] transition-colors"
+              className="px-3 sm:px-4 py-2 bg-[#1a1a1a] text-[#f0ece4] rounded-[10px] text-sm font-semibold hover:bg-[#2d2d2d] transition-colors whitespace-nowrap"
             >
-              Начать бесплатно
+              <span className="hidden sm:inline">Начать бесплатно</span>
+              <span className="sm:hidden">Начать</span>
             </Link>
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-6 pt-20 pb-20 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a]/[0.06] rounded-full text-xs font-semibold text-[#1a1a1a]/70 mb-10 border border-[#1a1a1a]/10">
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pt-12 sm:pt-20 pb-12 sm:pb-20 text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a]/[0.06] rounded-full text-xs font-semibold text-[#1a1a1a]/70 mb-7 sm:mb-10 border border-[#1a1a1a]/10">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           Для ресторанов и кафе
         </div>
 
-        <h1 className="text-5xl md:text-[72px] font-bold leading-[1.05] tracking-tight text-[#1a1a1a] mb-6">
+        <h1 className="text-[40px] sm:text-5xl md:text-[72px] font-bold leading-[1.08] tracking-tight text-[#1a1a1a] mb-5 sm:mb-6">
           Управляйте<br />
           <span className="relative inline-block">
             сменами легко
@@ -138,21 +139,21 @@ export default async function Home() {
           </span>
         </h1>
 
-        <p className="text-lg text-[#1a1a1a]/50 max-w-lg mx-auto mb-10 leading-relaxed">
-          Задачи, команда, аналитика — всё в одном месте.<br />
+        <p className="text-base sm:text-lg text-[#1a1a1a]/50 max-w-lg mx-auto mb-8 sm:mb-10 leading-relaxed">
+          Задачи, команда, аналитика — всё в одном месте.
           Ваши сотрудники всегда знают, что делать.
         </p>
 
-        <div className="flex items-center justify-center gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/register"
-            className="px-7 py-3.5 bg-[#1a1a1a] text-[#f0ece4] rounded-[12px] font-semibold hover:bg-[#2d2d2d] transition-colors shadow-lg shadow-[#1a1a1a]/20"
+            className="w-full sm:w-auto px-7 py-3.5 bg-[#1a1a1a] text-[#f0ece4] rounded-[12px] font-semibold hover:bg-[#2d2d2d] transition-colors shadow-lg shadow-[#1a1a1a]/20 text-center"
           >
             Начать бесплатно →
           </Link>
           <Link
             href="/login"
-            className="px-7 py-3.5 bg-white border border-[#e4ddd2] rounded-[12px] font-semibold hover:bg-[#faf9f7] transition-colors"
+            className="w-full sm:w-auto px-7 py-3.5 bg-white border border-[#e4ddd2] rounded-[12px] font-semibold hover:bg-[#faf9f7] transition-colors text-center"
           >
             Войти в аккаунт
           </Link>
@@ -160,12 +161,31 @@ export default async function Home() {
       </section>
 
       {/* Mock UI preview */}
-      <section className="max-w-5xl mx-auto px-6 pb-24">
-        <div className="bg-[#1a1a1a] rounded-[24px] p-4 sm:p-6 shadow-2xl shadow-[#1a1a1a]/30">
-          {/* Mock sidebar + content */}
-          <div className="flex gap-4 min-h-[220px] sm:min-h-[280px]">
-            {/* Sidebar mock */}
-            <div className="hidden sm:block w-44 shrink-0 space-y-1">
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-16 sm:pb-24">
+        <div className="bg-[#1a1a1a] rounded-[20px] sm:rounded-[24px] p-4 sm:p-6 shadow-2xl shadow-[#1a1a1a]/30 overflow-hidden">
+          {/* Mobile: just task list mock */}
+          <div className="sm:hidden space-y-2.5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="h-3.5 w-20 bg-[#f0ece4] rounded-full" />
+              <div className="h-7 w-20 bg-[#f0ece4]/10 rounded-[8px]" />
+            </div>
+            {[
+              { color: '#f59e0b', w: 'w-3/4' },
+              { color: '#3b82f6', w: 'w-2/3' },
+              { color: '#f59e0b', w: 'w-4/5' },
+              { color: '#10b981', w: 'w-1/2' },
+            ].map((card, i) => (
+              <div key={i} className="flex items-center gap-3 bg-[#2d2d2d] rounded-[10px] p-3 border-l-[3px]" style={{ borderLeftColor: card.color }}>
+                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: card.color }} />
+                <div className={`h-2 ${card.w} bg-[#f0ece4]/30 rounded-full`} />
+                <div className="ml-auto h-5 w-14 bg-[#3d3d3d] rounded-md shrink-0" />
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: sidebar + content */}
+          <div className="hidden sm:flex gap-4 min-h-[280px]">
+            <div className="w-44 shrink-0 space-y-1">
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-7 h-7 rounded-[7px] overflow-hidden">
                   <img src="/icon.svg" alt="" className="w-full h-full" />
@@ -182,22 +202,19 @@ export default async function Home() {
                 </div>
               ))}
             </div>
-
-            {/* Content mock */}
             <div className="flex-1 space-y-3">
               <div className="flex items-center justify-between mb-4">
                 <div className="h-4 w-32 bg-[#f0ece4] rounded-full" />
                 <div className="h-7 w-24 bg-[#f0ece4]/10 rounded-[8px]" />
               </div>
-              {/* Task cards */}
               {[
-                { status: 'bg-amber-500', title: 'Подготовить зал к открытию', w: 'w-52' },
-                { status: 'bg-blue-500', title: 'Проверить запасы бара', w: 'w-44' },
-                { status: 'bg-amber-500', title: 'Обучение нового сотрудника', w: 'w-48' },
-                { status: 'bg-emerald-500', title: 'Отчёт за вчерашний день', w: 'w-40' },
+                { color: '#f59e0b', w: 'w-52' },
+                { color: '#3b82f6', w: 'w-44' },
+                { color: '#f59e0b', w: 'w-48' },
+                { color: '#10b981', w: 'w-40' },
               ].map((card, i) => (
-                <div key={i} className="flex items-center gap-3 bg-[#2d2d2d] rounded-[10px] p-3 border-l-[3px]" style={{ borderColor: card.status.replace('bg-', '').includes('amber') ? '#f59e0b' : card.status.includes('blue') ? '#3b82f6' : '#10b981' }}>
-                  <div className={`w-2 h-2 rounded-full ${card.status} shrink-0`} />
+                <div key={i} className="flex items-center gap-3 bg-[#2d2d2d] rounded-[10px] p-3 border-l-[3px]" style={{ borderLeftColor: card.color }}>
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: card.color }} />
                   <div className={`h-2 ${card.w} bg-[#f0ece4]/30 rounded-full`} />
                   <div className="ml-auto h-5 w-12 bg-[#3d3d3d] rounded-md" />
                 </div>
@@ -208,8 +225,8 @@ export default async function Home() {
       </section>
 
       {/* Features */}
-      <section className="max-w-5xl mx-auto px-6 pb-24">
-        <h2 className="text-3xl font-bold text-center mb-12 text-[#1a1a1a]">
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-16 sm:pb-24">
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12 text-[#1a1a1a]">
           Всё что нужно для работы
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -226,13 +243,13 @@ export default async function Home() {
       </section>
 
       {/* Bottom CTA */}
-      <section className="max-w-5xl mx-auto px-6 pb-20">
-        <div className="bg-[#1a1a1a] rounded-[24px] p-10 text-center">
-          <h2 className="text-3xl font-bold text-[#f0ece4] mb-3">Готовы начать?</h2>
-          <p className="text-[#78736a] mb-8">Зарегистрируйтесь бесплатно и настройте первую точку за 2 минуты</p>
+      <section className="max-w-5xl mx-auto px-5 sm:px-6 pb-14 sm:pb-20">
+        <div className="bg-[#1a1a1a] rounded-[20px] sm:rounded-[24px] p-7 sm:p-10 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#f0ece4] mb-3">Готовы начать?</h2>
+          <p className="text-[#78736a] mb-7 sm:mb-8 text-sm sm:text-base">Зарегистрируйтесь бесплатно и настройте первую точку за 2 минуты</p>
           <Link
             href="/register"
-            className="inline-flex px-8 py-4 bg-[#f0ece4] text-[#1a1a1a] rounded-[12px] font-bold hover:bg-white transition-colors text-base"
+            className="inline-flex w-full sm:w-auto justify-center px-8 py-4 bg-[#f0ece4] text-[#1a1a1a] rounded-[12px] font-bold hover:bg-white transition-colors text-base"
           >
             Создать аккаунт →
           </Link>
