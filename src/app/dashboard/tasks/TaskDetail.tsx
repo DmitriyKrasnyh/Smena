@@ -100,28 +100,44 @@ export default function TaskDetail({ task, profile }: TaskDetailProps) {
 
     const channel = supabase
       .channel(`task-detail-${task.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_checklist_items', filter: `task_id=eq.${task.id}` },
-        (payload) => {
-          if (payload.eventType === 'INSERT') setChecklist(p => [...p, payload.new as ChecklistItem])
-          if (payload.eventType === 'UPDATE') setChecklist(p => p.map(i => i.id === payload.new.id ? payload.new as ChecklistItem : i))
-          if (payload.eventType === 'DELETE') setChecklist(p => p.filter(i => i.id !== payload.old.id))
+      // Checklist: other users' changes come via realtime; own changes are optimistic
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'task_checklist_items',
+        filter: `task_id=eq.${task.id}`,
+      }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setChecklist(p => {
+            if (p.some(i => i.id === payload.new.id || i.id.startsWith('temp-'))) return p
+            return [...p, payload.new as ChecklistItem]
+          })
         }
-      )
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'task_comments', filter: `task_id=eq.${task.id}` },
-        async (payload) => {
-          const { data } = await supabase
-            .from('task_comments')
-            .select('*, author:profiles!task_comments_author_id_fkey(id, full_name)')
-            .eq('id', payload.new.id)
-            .single()
-          if (data) setComments(p => [...p, data as Comment])
+        if (payload.eventType === 'UPDATE') {
+          setChecklist(p => p.map(i => i.id === payload.new.id ? payload.new as ChecklistItem : i))
         }
-      )
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'task_activity', filter: `task_id=eq.${task.id}` },
-        (payload) => {
-          setActivity(p => [payload.new as TaskActivity, ...p])
+        if (payload.eventType === 'DELETE') {
+          setChecklist(p => p.filter(i => i.id !== payload.old.id))
         }
-      )
+      })
+      // Comments: only show other users' comments via realtime (own are optimistic)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'task_comments',
+        filter: `task_id=eq.${task.id}`,
+      }, async (payload) => {
+        if (payload.new.author_id === profile.id) return
+        const { data } = await supabase
+          .from('task_comments')
+          .select('*, author:profiles!task_comments_author_id_fkey(id, full_name)')
+          .eq('id', payload.new.id)
+          .single()
+        if (data) setComments(p => [...p, data as Comment])
+      })
+      // Activity
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'task_activity',
+        filter: `task_id=eq.${task.id}`,
+      }, (payload) => {
+        setActivity(p => [payload.new as TaskActivity, ...p])
+      })
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
@@ -134,8 +150,11 @@ export default function TaskDetail({ task, profile }: TaskDetailProps) {
   async function loadData() {
     const [{ data: cl }, { data: cm }, { data: ac }] = await Promise.all([
       supabase.from('task_checklist_items').select('*').eq('task_id', task.id).order('position'),
-      supabase.from('task_comments').select('*, author:profiles!task_comments_author_id_fkey(id, full_name)').eq('task_id', task.id).order('created_at'),
-      supabase.from('task_activity').select('*').eq('task_id', task.id).order('created_at', { ascending: false }).limit(20),
+      supabase.from('task_comments')
+        .select('*, author:profiles!task_comments_author_id_fkey(id, full_name)')
+        .eq('task_id', task.id).order('created_at'),
+      supabase.from('task_activity').select('*').eq('task_id', task.id)
+        .order('created_at', { ascending: false }).limit(20),
     ])
     setChecklist(cl || [])
     setComments((cm || []) as Comment[])
@@ -147,35 +166,86 @@ export default function TaskDetail({ task, profile }: TaskDetailProps) {
     e.preventDefault()
     if (!newItem.trim()) return
     setAddingItem(true)
-    const { error } = await supabase.from('task_checklist_items').insert({
-      task_id: task.id,
-      text: newItem.trim(),
-      position: checklist.length,
-    })
-    if (error) toast.error('Ошибка добавления пункта')
-    else setNewItem('')
+    const text = newItem.trim()
+    setNewItem('')
+
+    // Optimistic insert
+    const tempId = `temp-${Date.now()}`
+    const tempItem: ChecklistItem = {
+      id: tempId, task_id: task.id, text, completed: false, position: checklist.length,
+    }
+    setChecklist(p => [...p, tempItem])
+
+    const { data, error } = await supabase
+      .from('task_checklist_items')
+      .insert({ task_id: task.id, text, position: checklist.length })
+      .select()
+      .single()
+
+    if (error) {
+      toast.error('Ошибка добавления пункта')
+      setChecklist(p => p.filter(i => i.id !== tempId))
+    } else {
+      setChecklist(p => p.map(i => i.id === tempId ? data as ChecklistItem : i))
+    }
     setAddingItem(false)
   }
 
   async function toggleItem(item: ChecklistItem) {
-    await supabase.from('task_checklist_items').update({ completed: !item.completed }).eq('id', item.id)
+    // Optimistic toggle
+    setChecklist(p => p.map(i => i.id === item.id ? { ...i, completed: !i.completed } : i))
+    const { error } = await supabase
+      .from('task_checklist_items')
+      .update({ completed: !item.completed })
+      .eq('id', item.id)
+    if (error) {
+      // Revert
+      setChecklist(p => p.map(i => i.id === item.id ? { ...i, completed: item.completed } : i))
+      toast.error('Ошибка обновления')
+    }
   }
 
   async function deleteItem(id: string) {
-    await supabase.from('task_checklist_items').delete().eq('id', id)
+    // Optimistic delete
+    setChecklist(p => p.filter(i => i.id !== id))
+    const { error } = await supabase.from('task_checklist_items').delete().eq('id', id)
+    if (error) {
+      toast.error('Ошибка удаления')
+      loadData()
+    }
   }
 
   async function sendComment(e: React.FormEvent) {
     e.preventDefault()
     if (!newComment.trim()) return
     setSendingComment(true)
-    const { error } = await supabase.from('task_comments').insert({
+    const text = newComment.trim()
+    setNewComment('')
+
+    // Optimistic insert
+    const tempId = `temp-${Date.now()}`
+    const tempComment: Comment = {
+      id: tempId,
       task_id: task.id,
       author_id: profile.id,
-      text: newComment.trim(),
-    })
-    if (error) toast.error('Ошибка отправки комментария')
-    else setNewComment('')
+      text,
+      created_at: new Date().toISOString(),
+      author: { id: profile.id, full_name: profile.full_name },
+    }
+    setComments(p => [...p, tempComment])
+
+    const { data, error } = await supabase
+      .from('task_comments')
+      .insert({ task_id: task.id, author_id: profile.id, text })
+      .select('*, author:profiles!task_comments_author_id_fkey(id, full_name)')
+      .single()
+
+    if (error) {
+      toast.error('Ошибка отправки комментария')
+      setComments(p => p.filter(c => c.id !== tempId))
+    } else {
+      setComments(p => p.map(c => c.id === tempId ? data as Comment : c))
+    }
     setSendingComment(false)
   }
 
@@ -213,9 +283,10 @@ export default function TaskDetail({ task, profile }: TaskDetailProps) {
 
         <div className="space-y-1.5 mb-2">
           {checklist.map(item => (
-            <div key={item.id} className="flex items-center gap-2 group">
+            <div key={item.id} className={`flex items-center gap-2 group ${item.id.startsWith('temp-') ? 'opacity-60' : ''}`}>
               <button
                 onClick={() => toggleItem(item)}
+                disabled={item.id.startsWith('temp-')}
                 className={`flex-shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
                   item.completed
                     ? 'bg-green-500 border-green-500'
@@ -227,7 +298,7 @@ export default function TaskDetail({ task, profile }: TaskDetailProps) {
               <span className={`flex-1 text-sm ${item.completed ? 'line-through text-muted-foreground' : ''}`}>
                 {item.text}
               </span>
-              {isManager && (
+              {isManager && !item.id.startsWith('temp-') && (
                 <button
                   onClick={() => deleteItem(item.id)}
                   className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
@@ -246,9 +317,10 @@ export default function TaskDetail({ task, profile }: TaskDetailProps) {
               value={newItem}
               onChange={e => setNewItem(e.target.value)}
               className="h-8 text-sm"
+              disabled={addingItem}
             />
-            <Button type="submit" size="sm" variant="outline" className="h-8 px-2" disabled={addingItem}>
-              <Plus className="h-3.5 w-3.5" />
+            <Button type="submit" size="sm" variant="outline" className="h-8 px-2" disabled={addingItem || !newItem.trim()}>
+              {addingItem ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
             </Button>
           </form>
         )}
@@ -268,8 +340,9 @@ export default function TaskDetail({ task, profile }: TaskDetailProps) {
               const initials = (c.author?.full_name || 'U')
                 .split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
               const isMe = c.author_id === profile.id
+              const isPending = c.id.startsWith('temp-')
               return (
-                <div key={c.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+                <div key={c.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''} ${isPending ? 'opacity-70' : ''}`}>
                   <Avatar className="h-7 w-7 shrink-0">
                     <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                       {initials}
@@ -284,7 +357,9 @@ export default function TaskDetail({ task, profile }: TaskDetailProps) {
                       {c.text}
                     </div>
                     <span className="text-xs text-muted-foreground px-1">
-                      {isMe ? 'Вы' : c.author?.full_name?.split(' ')[0]} · {new Date(c.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                      {isMe ? 'Вы' : c.author?.full_name?.split(' ')[0]}
+                      {' · '}
+                      {isPending ? 'отправляется...' : new Date(c.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                 </div>
@@ -300,9 +375,12 @@ export default function TaskDetail({ task, profile }: TaskDetailProps) {
             value={newComment}
             onChange={e => setNewComment(e.target.value)}
             className="h-9 text-sm"
+            disabled={sendingComment}
           />
           <Button type="submit" size="sm" className="h-9 px-3" disabled={sendingComment || !newComment.trim()}>
-            <Send className="h-3.5 w-3.5" />
+            {sendingComment
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Send className="h-3.5 w-3.5" />}
           </Button>
         </form>
       </div>
