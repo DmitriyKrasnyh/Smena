@@ -58,7 +58,7 @@ function BarRow({ label, value, max, color, suffix = '' }: {
   const pct = max > 0 ? (value / max) * 100 : 0
   return (
     <div className="flex items-center gap-3">
-      <span className="text-xs text-muted-foreground w-28 shrink-0 truncate">{label}</span>
+      <span className="text-xs text-muted-foreground w-20 sm:w-28 shrink-0 truncate">{label}</span>
       <div className="flex-1 h-6 bg-[#f5f3f0] rounded-lg overflow-hidden">
         <div
           className="h-full rounded-lg transition-all duration-500"
@@ -152,7 +152,7 @@ export default function AnalyticsClient({ tasks, members }: Props) {
     <div className="p-5 md:p-8 max-w-4xl mx-auto">
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-8 animate-slide-up">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-8 animate-slide-up">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">Аналитика</h1>
           <p className="text-muted-foreground mt-1 text-sm">Показатели задач и команды</p>

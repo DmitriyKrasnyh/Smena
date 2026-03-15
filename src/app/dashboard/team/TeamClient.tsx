@@ -126,7 +126,7 @@ export default function TeamClient({ profile, members: initialMembers, invites: 
       </div>
 
       <div className="rounded-2xl border bg-card p-4 mb-5">
-        <div className="flex gap-3 items-end">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div className="space-y-2 flex-1">
             <Label>Роль</Label>
             <Select value={role} onValueChange={v => setRole(v as typeof role)}>
@@ -137,7 +137,7 @@ export default function TeamClient({ profile, members: initialMembers, invites: 
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={createInvite} disabled={loading} className="gap-2">
+          <Button onClick={createInvite} disabled={loading} className="gap-2 w-full sm:w-auto">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Создать ссылку
           </Button>

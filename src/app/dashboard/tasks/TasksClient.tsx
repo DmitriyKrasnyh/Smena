@@ -908,7 +908,8 @@ export default function TasksClient({ tasks: initialTasks, workers, profile, tem
 
       {/* Tasks — kanban view */}
       {tab === 'tasks' && viewMode === 'kanban' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-2">
+        <div className="grid grid-cols-3 gap-4 min-w-[520px] sm:min-w-0">
           {(['new', 'in_progress', 'done'] as const).map(status => {
             const cfg = STATUS_CONFIG[status]
             const columnTasks = filteredTasks.filter(t => t.status === status)
@@ -927,6 +928,7 @@ export default function TasksClient({ tasks: initialTasks, workers, profile, tem
               </div>
             )
           })}
+        </div>
         </div>
       )}
 
