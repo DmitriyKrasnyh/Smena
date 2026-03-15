@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
@@ -25,8 +24,6 @@ interface SettingsClientProps {
 
 export default function SettingsClient({ profile, ownedRestaurants = [] }: SettingsClientProps) {
   const [fullName, setFullName] = useState(profile.full_name)
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '')
@@ -96,12 +93,15 @@ export default function SettingsClient({ profile, ownedRestaurants = [] }: Setti
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault()
-    if (newPassword.length < 6) { toast.error('Пароль должен быть не менее 6 символов'); return }
-    if (newPassword !== confirmPassword) { toast.error('Пароли не совпадают'); return }
     setSavingPassword(true)
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-    if (error) toast.error('Ошибка смены пароля: ' + error.message)
-    else { toast.success('Пароль изменён'); setNewPassword(''); setConfirmPassword('') }
+    const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/auth/update-password`,
+    })
+    if (error) {
+      toast.error('Не удалось отправить письмо')
+    } else {
+      toast.success('Письмо отправлено! Проверьте почту для смены пароля.')
+    }
     setSavingPassword(false)
   }
 
@@ -350,18 +350,13 @@ export default function SettingsClient({ profile, ownedRestaurants = [] }: Setti
           <CardTitle className="text-base">Смена пароля</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleChangePassword} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">Новый пароль</Label>
-              <Input id="newPassword" type="password" placeholder="Минимум 6 символов" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Подтвердите пароль</Label>
-              <Input id="confirmPassword" type="password" placeholder="Повторите пароль" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
-            </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Мы отправим письмо на <span className="font-medium text-foreground">{profile.email}</span> со ссылкой для установки нового пароля.
+          </p>
+          <form onSubmit={handleChangePassword}>
             <Button type="submit" disabled={savingPassword}>
               {savingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Изменить пароль
+              Отправить ссылку для смены пароля
             </Button>
           </form>
         </CardContent>

@@ -27,31 +27,29 @@ export default function RegisterPage() {
     e.preventDefault()
     setLoading(true)
 
-    const { data: { user: existingUser } } = await supabase.auth.getUser()
-    let userId: string
-    let hasSession: boolean
-
-    if (existingUser) {
-      userId = existingUser.id
-      hasSession = true
-    } else {
-      if (password.length < 6) {
-        toast.error('Пароль должен быть не менее 6 символов')
-        setLoading(false)
-        return
-      }
-      const { data: authData, error: authError } = await supabase.auth.signUp({ email, password })
-      if (authError || !authData.user) {
-        toast.error(authError?.message || 'Ошибка регистрации')
-        setLoading(false)
-        return
-      }
-      userId = authData.user.id
-      hasSession = !!authData.session
+    if (password.length < 6) {
+      toast.error('Пароль должен быть не менее 6 символов')
+      setLoading(false)
+      return
     }
 
+    const emailRedirectTo = `${window.location.origin}/auth/callback`
+
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo },
+    })
+
+    if (authError || !authData.user) {
+      toast.error(authError?.message || 'Ошибка регистрации')
+      setLoading(false)
+      return
+    }
+
+    // Create profile immediately (register_owner is SECURITY DEFINER, works without session)
     const { error: rpcError } = await supabase.rpc('register_owner', {
-      p_user_id: userId,
+      p_user_id: authData.user.id,
       p_email: email,
       p_full_name: fullName,
       p_restaurant_name: restaurantName,
@@ -63,13 +61,14 @@ export default function RegisterPage() {
       return
     }
 
-    if (hasSession) {
+    if (authData.session) {
+      // Email confirmation disabled in Supabase — log in directly
       toast.success('Добро пожаловать в Смену!')
       router.push('/dashboard')
       router.refresh()
     } else {
-      toast.success('Учётная запись создана! Проверьте почту для подтверждения.')
-      router.push('/login')
+      // Email confirmation required — show check email page
+      router.push(`/auth/confirm?email=${encodeURIComponent(email)}&type=signup`)
     }
   }
 
