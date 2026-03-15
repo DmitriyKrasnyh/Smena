@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { Loader2, Building2, UserPlus, CheckCircle2 } from 'lucide-react'
+import { Loader2, Building2, UserPlus } from 'lucide-react'
 
 const ROLE_LABELS: Record<string, string> = {
   manager: 'Управляющий',
@@ -34,7 +34,6 @@ export default function InvitePage() {
   const [password,  setPassword]  = useState('')
   const [loading,   setLoading]   = useState(false)
   const [checking,  setChecking]  = useState(true)
-  const [done,      setDone]      = useState(false)  // email confirmation pending
 
   useEffect(() => {
     async function checkInvite() {
@@ -67,45 +66,33 @@ export default function InvitePage() {
 
     setLoading(true)
 
-    // 1. Register in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+    // Server-side: creates user with email already confirmed (no confirmation email needed)
+    const res = await fetch('/api/invite/accept', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, email, password, fullName }),
     })
 
-    if (authError || !authData.user) {
-      toast.error(authError?.message || 'Ошибка регистрации')
+    const result = await res.json()
+
+    if (!res.ok || result.error) {
+      toast.error(result.error || 'Ошибка регистрации')
       setLoading(false)
       return
     }
 
-    // 2. Create profile via SECURITY DEFINER (works without session)
-    const { data: result, error: rpcError } = await supabase.rpc('accept_invite', {
-      p_token:     token,
-      p_user_id:   authData.user.id,
-      p_email:     email,
-      p_full_name: fullName,
-    })
+    // Sign in immediately (user already confirmed)
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (rpcError || result?.error) {
-      toast.error(result?.error || 'Ошибка создания профиля')
-      setLoading(false)
+    if (signInError) {
+      toast.error('Аккаунт создан, но не удалось войти. Попробуйте войти вручную.')
+      router.push('/login')
       return
     }
 
-    const hasSession = !!authData.session
-
-    if (hasSession) {
-      toast.success('Добро пожаловать в команду!')
-      router.push('/dashboard')
-      router.refresh()
-    } else {
-      // Email confirmation required
-      setDone(true)
-    }
+    toast.success('Добро пожаловать в команду!')
+    router.push('/dashboard')
+    router.refresh()
 
     setLoading(false)
   }
@@ -133,30 +120,6 @@ export default function InvitePage() {
           <p className="text-sm text-muted-foreground mb-6">
             Эта ссылка-приглашение устарела или уже была использована.
             Попросите руководителя создать новую.
-          </p>
-          <button
-            onClick={() => router.push('/login')}
-            className="px-5 py-2.5 rounded-[10px] bg-[#1a1a1a] text-white text-sm font-semibold hover:bg-[#2d2d2d] transition-colors"
-          >
-            Перейти ко входу
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // Email confirmation sent
-  if (done) {
-    return (
-      <div className="min-h-screen bg-[#f0ece4] flex items-center justify-center p-4">
-        <div className="w-full max-w-sm text-center animate-slide-up">
-          <div className="w-14 h-14 rounded-[14px] bg-[#ecfdf5] border border-[#a7f3d0] flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="h-7 w-7 text-emerald-500" />
-          </div>
-          <h1 className="text-lg font-bold text-foreground mb-2">Почти готово!</h1>
-          <p className="text-sm text-muted-foreground mb-6">
-            Письмо с подтверждением отправлено на <span className="font-semibold text-foreground">{email}</span>.
-            После подтверждения войдите в систему.
           </p>
           <button
             onClick={() => router.push('/login')}
