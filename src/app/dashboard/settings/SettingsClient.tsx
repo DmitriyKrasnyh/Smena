@@ -27,6 +27,9 @@ export default function SettingsClient({ profile, ownedRestaurants = [] }: Setti
   const [fullName, setFullName] = useState(profile.full_name)
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
@@ -94,14 +97,19 @@ export default function SettingsClient({ profile, ownedRestaurants = [] }: Setti
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault()
+    if (newPassword.length < 6) { toast.error('Новый пароль должен быть не менее 6 символов'); return }
+    if (newPassword !== confirmPassword) { toast.error('Пароли не совпадают'); return }
     setSavingPassword(true)
-    const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback?next=/auth/update-password`,
-    })
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: profile.email, password: currentPassword })
+    if (signInError) { toast.error('Неверный текущий пароль'); setSavingPassword(false); return }
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) {
-      toast.error('Не удалось отправить письмо')
+      toast.error('Ошибка смены пароля')
     } else {
-      toast.success('Письмо отправлено! Проверьте почту для смены пароля.')
+      toast.success('Пароль успешно изменён')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
     }
     setSavingPassword(false)
   }
@@ -351,13 +359,22 @@ export default function SettingsClient({ profile, ownedRestaurants = [] }: Setti
           <CardTitle className="text-base">Смена пароля</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Мы отправим письмо на <span className="font-medium text-foreground">{profile.email}</span> со ссылкой для установки нового пароля.
-          </p>
-          <form onSubmit={handleChangePassword}>
-            <Button type="submit" disabled={savingPassword}>
+          <form onSubmit={handleChangePassword} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="currentPassword">Текущий пароль</Label>
+              <Input id="currentPassword" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required autoComplete="current-password" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="newPassword">Новый пароль</Label>
+              <Input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required autoComplete="new-password" placeholder="Минимум 6 символов" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="confirmPassword">Повторите новый пароль</Label>
+              <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required autoComplete="new-password" />
+            </div>
+            <Button type="submit" disabled={savingPassword} className="mt-1">
               {savingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Отправить ссылку для смены пароля
+              Сменить пароль
             </Button>
           </form>
         </CardContent>
