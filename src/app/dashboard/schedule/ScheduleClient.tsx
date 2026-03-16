@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, Fragment } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { ChevronLeft, ChevronRight, Loader2, X, Trash2, RefreshCw, Calendar, Clock, Building2 } from 'lucide-react'
@@ -343,7 +343,7 @@ export default function ScheduleClient({ employees, initialShifts, templates: in
                   .reduce((sum, s) => sum + calcHours(s.start_time, s.end_time), 0)
 
                 return (
-                  <>
+                  <Fragment key={restaurant.id}>
                     {/* Restaurant section header */}
                     {multiRest && (
                       <tr key={`header-${restaurant.id}`}>
@@ -413,7 +413,7 @@ export default function ScheduleClient({ employees, initialShifts, templates: in
                         </tr>
                       )
                     })}
-                  </>
+                  </Fragment>
                 )
               })}
 
