@@ -81,10 +81,14 @@ export default function InvitePage() {
       return
     }
 
-    // Sign in immediately (user already confirmed)
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    // Sign in via server-side route (avoids SDK routing issues)
+    const signInRes = await fetch('/api/auth/sign-in', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
 
-    if (signInError) {
+    if (!signInRes.ok) {
       toast.error('Аккаунт создан, но не удалось войти. Попробуйте войти вручную.')
       router.push('/login')
       return
