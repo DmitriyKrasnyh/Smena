@@ -32,7 +32,7 @@ function ConfirmContent() {
         if (error) throw error
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/callback?next=/auth/update-password`,
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback?next=/auth/update-password`,
         })
         if (error) throw error
       }

@@ -33,7 +33,7 @@ export default function RegisterPage() {
       return
     }
 
-    const emailRedirectTo = `${window.location.origin}/auth/callback`
+    const emailRedirectTo = `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
