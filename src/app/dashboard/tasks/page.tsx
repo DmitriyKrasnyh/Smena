@@ -25,6 +25,7 @@ export default async function TasksPage() {
     .from('tasks')
     .select('*, assignee:profiles!tasks_assigned_to_fkey(id, full_name), creator:profiles!tasks_created_by_fkey(id, full_name)')
     .eq('restaurant_id', profile.restaurant_id)
+    .or('chain_unlocked.eq.true,chain_id.is.null')
     .order('created_at', { ascending: false })
 
   if (!isManager) {

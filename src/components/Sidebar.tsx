@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import {
   CheckSquare, Users, Settings, LogOut,
-  LayoutDashboard, X, BarChart2,
+  LayoutDashboard, X, BarChart2, Store, Link2, CalendarDays,
   ChevronDown, Check, Plus, Loader2,
 } from 'lucide-react'
 import type { Profile } from '@/lib/types'
@@ -81,9 +81,14 @@ export default function Sidebar({ profile, ownedRestaurants = [] }: SidebarProps
   const navItems = [
     { href: '/dashboard',             label: 'Главная',   icon: LayoutDashboard },
     { href: '/dashboard/tasks',       label: 'Задачи',    icon: CheckSquare },
+    ...(isOwner ? [
+      { href: '/dashboard/overview',  label: 'Заведения', icon: Store },
+    ] : []),
     ...(isManager ? [
-      { href: '/dashboard/team',      label: 'Команда',   icon: Users },
-      { href: '/dashboard/analytics', label: 'Аналитика', icon: BarChart2 },
+      { href: '/dashboard/team',      label: 'Команда',    icon: Users },
+      { href: '/dashboard/schedule',  label: 'Расписание', icon: CalendarDays },
+      { href: '/dashboard/chains',    label: 'Цепочки',    icon: Link2 },
+      { href: '/dashboard/analytics', label: 'Аналитика',  icon: BarChart2 },
     ] : []),
     { href: '/dashboard/settings',    label: 'Настройки', icon: Settings },
   ]

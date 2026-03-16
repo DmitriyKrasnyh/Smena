@@ -121,6 +121,7 @@ export default function TasksClient({ tasks: initialTasks, workers, profile, tem
   const [tmplRecurrenceType, setTmplRecurrenceType] = useState<'daily' | 'weekly'>('daily')
   const [tmplDays, setTmplDays] = useState<number[]>([])
   const [tmplCategory, setTmplCategory] = useState('other')
+  const [tmplScheduledTime, setTmplScheduledTime] = useState('')
 
   const supabase = createClient()
   const isManager = profile.role === 'owner' || profile.role === 'manager'
@@ -395,6 +396,7 @@ export default function TasksClient({ tasks: initialTasks, workers, profile, tem
         recurrence_type: tmplRecurrenceType,
         recurrence_days: tmplRecurrenceType === 'weekly' ? tmplDays : null,
         category: tmplCategory,
+        scheduled_time: tmplScheduledTime || null,
       })
       .select('*, assignee:profiles!task_templates_assigned_to_fkey(id, full_name)')
       .single()
@@ -407,6 +409,7 @@ export default function TasksClient({ tasks: initialTasks, workers, profile, tem
     setTmplTitle(''); setTmplDescription(''); setTmplPriority('medium'); setTmplAssignedTo('')
     setTmplAssigneeMode('single'); setTmplRandomAssignees([])
     setTmplRecurrenceType('daily'); setTmplDays([]); setTmplCategory('other')
+    setTmplScheduledTime('')
   }
 
   async function handleDeleteTemplate(id: string) {
@@ -1228,6 +1231,16 @@ export default function TasksClient({ tasks: initialTasks, workers, profile, tem
                 </div>
               </div>
             )}
+            <div className="space-y-2">
+              <Label>Время отправки</Label>
+              <input
+                type="time"
+                value={tmplScheduledTime}
+                onChange={e => setTmplScheduledTime(e.target.value)}
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              <p className="text-xs text-muted-foreground">Задача появится у сотрудника не раньше указанного времени</p>
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setTemplateOpen(false)}>Отмена</Button>
               <Button type="submit" disabled={loading}>
